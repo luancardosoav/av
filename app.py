@@ -1,11 +1,10 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import tempfile
 
 st.set_page_config(page_title="VOID Assistant", layout="wide")
 st.title("🎬 VOID Assistant – Ferramenta Interna")
 
-# Menu lateral
 menu = st.sidebar.radio("Escolha uma funcionalidade:", [
     "🧾 Orçamentos",
     "📘 Playbook",
@@ -16,48 +15,64 @@ menu = st.sidebar.radio("Escolha uma funcionalidade:", [
     "🎧 Transcreve AI"
 ])
 
-# OpenAI API key
-openai_api_key = st.secrets["OPENAI_API_KEY"]
+# OpenAI Key
+openai_api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else st.text_input("🔑 Cole sua OpenAI API Key", type="password")
 
-# Orçamentos
+# Utilitário para "Outro"
+def handle_outro(selecao, label):
+    if selecao == "Outro":
+        return st.text_input(f"✍️ Especifica o {label.lower()}")
+    return selecao
+
+# ORÇAMENTOS
 if menu == "🧾 Orçamentos":
     st.header("Gerador de Orçamentos Automáticos")
-    st.write("Cole abaixo o texto ou transcrição do áudio enviado pelo cliente.")
     client_input = st.text_area("📥 Texto enviado pelo cliente:")
     tipo_servico = st.text_input("📦 Tipo de serviço")
     prazo = st.text_input("⏳ Prazo desejado")
-    nivel = st.selectbox("💰 Nível de produção", ["Básico", "Intermediário", "Premium"])
+    nivel_raw = st.selectbox("💰 Nível de produção", ["Básico", "Intermediário", "Premium", "Outro"])
+    nivel = handle_outro(nivel_raw, "nível de produção")
     if st.button("Gerar orçamento"):
         st.success("🔧 Em breve: Geração automática via GPT com base nos orçamentos armazenados.")
 
-# Playbook
+# PLAYBOOK
 elif menu == "📘 Playbook":
     st.header("Respostas para Dúvidas e Objeções")
     question_input = st.text_area("💬 Dúvida ou objeção do cliente:")
-    categoria = st.selectbox("📂 Categoria da objeção", ["Preço", "Prazo", "Resultado", "Entrega", "Outro"])
-    tom_resposta = st.selectbox("🗣️ Tom da resposta", ["Confiante", "Empático", "Objetivo", "Informativo"])
+    categoria_raw = st.selectbox("📂 Categoria da objeção", ["Preço", "Prazo", "Resultado", "Entrega", "Outro"])
+    categoria = handle_outro(categoria_raw, "categoria da objeção")
+    tom_raw = st.selectbox("🗣️ Tom da resposta", ["Confiante", "Empático", "Objetivo", "Informativo", "Outro"])
+    tom = handle_outro(tom_raw, "tom da resposta")
     if st.button("Gerar resposta"):
         st.success("🔧 Em breve: Resposta baseada no playbook personalizado.")
 
-# Roteiros
+# ROTEIROS
 elif menu == "📋 Roteiros":
     st.header("📋 Roteirista Inteligente VOID")
-    st.write("Responda às perguntas abaixo para gerar 3 versões diferentes de um roteiro.")
 
     tema = st.text_input("🎯 Qual o tema do vídeo?")
-    objetivo = st.selectbox("🎯 Qual o objetivo do vídeo?", ["Gerar autoridade", "Converter em vendas", "Engajamento", "Outro"])
-    tom = st.selectbox("🗣️ Qual o tom da comunicação?", ["Inspirador", "Confiante", "Leve", "Direto", "Outro"])
+    objetivo_raw = st.selectbox("🎯 Qual o objetivo do vídeo?", ["Gerar autoridade", "Converter em vendas", "Engajamento", "Outro"])
+    objetivo = handle_outro(objetivo_raw, "objetivo")
+
+    tom_raw = st.selectbox("🗣️ Qual o tom da comunicação?", ["Inspirador", "Confiante", "Leve", "Direto", "Outro"])
+    tom = handle_outro(tom_raw, "tom")
+
     publico = st.text_input("👥 Quem é o público-alvo?")
-    formato = st.selectbox("🎬 Formato do vídeo", ["Reels", "Story", "YouTube Shorts", "Institucional", "Outro"])
-    tempo = st.selectbox("⏱️ Duração estimada", ["Até 30s", "1 minuto", "2-3 minutos", "Outro"])
+
+    formato_raw = st.selectbox("🎬 Formato do vídeo", ["Reels", "Story", "YouTube Shorts", "Institucional", "Outro"])
+    formato = handle_outro(formato_raw, "formato do vídeo")
+
+    tempo_raw = st.selectbox("⏱️ Duração estimada", ["Até 30s", "1 minuto", "2-3 minutos", "Outro"])
+    tempo = handle_outro(tempo_raw, "duração")
 
     def gerar_roteiros():
+        client = OpenAI(api_key=openai_api_key)
         prompt_base = f"""
-Tu é um roteirista experiente chamado VideoCraft, especialista em vídeos curtos com alta conversão para empresas e marcas pessoais. 
-Teu estilo mistura storytelling, linguagem acessível e autoridade, com foco nos seguintes blocos: 
+Tu é um roteirista experiente chamado VideoCraft, especialista em vídeos curtos com alta conversão para empresas e marcas pessoais.
+Teu estilo mistura storytelling, linguagem acessível e autoridade, com foco nos seguintes blocos:
 🎯 Gancho / 💥 Dor / 🧠 Autoridade / 🧩 Micro-story / 🛒 CTA.
 
-Gere 3 versões diferentes de roteiros para vídeo, com base no seguinte briefing:
+Gere 3 versões diferentes de roteiros com base neste briefing:
 
 Tema: {tema}
 Objetivo: {objetivo}
@@ -66,10 +81,9 @@ Público-alvo: {publico}
 Formato: {formato}
 Duração estimada: {tempo}
 
-Cada versão deve ser direta, com frases curtas e impacto emocional. Mantenha a estrutura e destaque os blocos de cada parte com emojis e títulos.
+Cada versão deve ser direta, com frases curtas e impacto emocional. Use emojis e títulos para destacar os blocos.
 """
-        openai.api_key = openai_api_key
-        resposta = openai.ChatCompletion.create(
+        resposta = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt_base}],
             temperature=0.9
@@ -85,55 +99,60 @@ Cada versão deve ser direta, com frases curtas e impacto emocional. Mantenha a 
         else:
             st.error("Preencha todos os campos e insira sua OpenAI API Key.")
 
-# Análise de Conteúdo
+# ANÁLISE
 elif menu == "📈 Análise de Conteúdo":
     st.header("Análise de Conteúdo Produzido")
     conteudo = st.text_area("📝 Cole aqui o texto do conteúdo:")
     if st.button("Analisar conteúdo"):
         st.success("🔧 Em breve: Análise completa com feedback sobre CTA, gancho, storytelling e objetivo.")
 
-# Ideias por Segmento
+# IDEIAS POR SEGMENTO
 elif menu == "🧠 Ideias de Conteúdo por Segmento":
     st.header("Ideias de Conteúdo por Segmento")
-    nicho = st.selectbox("🏷️ Nicho do cliente", ["Barbearia", "Estúdio de tatuagem", "Clínica estética", "Loja de roupas", "Petshop", "Outro"])
-    objetivo = st.selectbox("🎯 Objetivo do conteúdo", ["Atrair novos clientes", "Vender mais", "Gerar autoridade", "Engajar"])
+    nicho_raw = st.selectbox("🏷️ Nicho do cliente", ["Barbearia", "Estúdio de tatuagem", "Clínica estética", "Loja de roupas", "Petshop", "Outro"])
+    nicho = handle_outro(nicho_raw, "nicho")
+
+    objetivo_raw = st.selectbox("🎯 Objetivo do conteúdo", ["Atrair novos clientes", "Vender mais", "Gerar autoridade", "Engajar", "Outro"])
+    objetivo = handle_outro(objetivo_raw, "objetivo do conteúdo")
+
     if st.button("Gerar ideias"):
         st.success("🔧 Em breve: Sugestões de roteiros e CTAs personalizados por segmento.")
 
-# Grade de Conteúdo
+# GRADE
 elif menu == "🗓️ Planejador de Grade de Conteúdo":
     st.header("Planejador de Grade de Conteúdo")
-    postagens_semana = st.selectbox("📅 Frequência semanal de postagens", ["1", "2", "3", "4", "5+"])
-    foco = st.selectbox("🎯 Foco principal", ["Autoridade", "Engajamento", "Conversão", "Relacionamento"])
-    nivel_cliente = st.selectbox("🏁 Nível do cliente nas redes", ["Iniciante", "Intermediário", "Avançado"])
+    postagens = st.selectbox("📅 Frequência semanal de postagens", ["1", "2", "3", "4", "5+"])
+    foco_raw = st.selectbox("🎯 Foco principal", ["Autoridade", "Engajamento", "Conversão", "Relacionamento", "Outro"])
+    foco = handle_outro(foco_raw, "foco")
+    nivel_raw = st.selectbox("🏁 Nível do cliente nas redes", ["Iniciante", "Intermediário", "Avançado", "Outro"])
+    nivel = handle_outro(nivel_raw, "nível do cliente")
     if st.button("Gerar grade"):
         st.success("🔧 Em breve: Grade semanal com ideias e formatos distribuídos.")
 
-# Transcreve AI
+# TRANSCRIÇÃO
 elif menu == "🎧 Transcreve AI":
     st.header("🎧 Transcreve AI – Transcrição de Áudio e Vídeo")
-    st.write("Envie um arquivo de áudio/vídeo ou cole um link para gerar a transcrição automática.")
-
-    arquivo = st.file_uploader("📤 Envie um arquivo de áudio ou vídeo (.mp3, .mp4, .wav, .m4a)", type=["mp3", "mp4", "wav", "m4a"])
-    link = st.text_input("🔗 Ou cole o link direto do arquivo (em breve YouTube)")
+    arquivo = st.file_uploader("📤 Envie um arquivo (.mp3, .mp4, .wav, .m4a)", type=["mp3", "mp4", "wav", "m4a"])
+    link = st.text_input("🔗 Ou cole o link (YouTube em breve)")
 
     if st.button("🎙️ Transcrever"):
         if openai_api_key:
             if arquivo:
-                with st.spinner("Transcrevendo o arquivo..."):
+                with st.spinner("Transcrevendo..."):
                     try:
+                        client = OpenAI(api_key=openai_api_key)
                         with tempfile.NamedTemporaryFile(delete=False) as temp:
                             temp.write(arquivo.read())
                             temp_path = temp.name
-                        audio_file = open(temp_path, "rb")
-                        transcript = openai.Audio.transcribe("whisper-1", audio_file)
+                        with open(temp_path, "rb") as audio_file:
+                            transcript = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
                         st.subheader("📝 Transcrição:")
-                        st.write(transcript["text"])
+                        st.write(transcript.text)
                     except Exception as e:
                         st.error(f"Erro ao transcrever: {e}")
             elif link:
-                st.warning("⚠️ Transcrição por link ainda não está disponível nesta versão. Envie um arquivo por enquanto.")
+                st.warning("⚠️ Transcrição por link ainda não disponível. Use upload de arquivo por enquanto.")
             else:
-                st.warning("⚠️ Por favor, envie um arquivo ou insira um link.")
+                st.warning("⚠️ Envie um arquivo ou insira um link.")
         else:
             st.error("🔐 API Key da OpenAI não fornecida.")
