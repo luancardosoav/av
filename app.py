@@ -1,36 +1,50 @@
 import streamlit as st
 from openai import OpenAI
 
-st.set_page_config(page_title="VOID Assistant", layout="wide")
-st.title("📋 VOID Assistant – Roteirista Inteligente")
+st.set_page_config(page_title="VOID Assistant – VideoCraft", layout="centered")
+st.title("🎬 VOID Assistant – Roteirista Profissional")
 
-# Chave API via secrets (não aparece na interface)
+st.markdown("Crie roteiros estratégicos para vídeos de alto impacto. Preencha o briefing abaixo:")
+
+# Chave da API (via secrets)
 openai_api_key = st.secrets["OPENAI_API_KEY"]
 
-# Função auxiliar para campos com "Outro"
-def handle_outro(selecao, label):
-    if selecao == "Outro":
+# Utilitário para lidar com a opção "Outro"
+def handle_outro(opcao, label):
+    if opcao == "Outro":
         return st.text_input(f"✍️ Especifique o {label.lower()}")
-    return selecao
+    return opcao
 
-# Formulário de briefing
-st.subheader("Preencha o briefing para gerar 3 roteiros diferentes")
-tema = st.text_input("🎯 Tema do vídeo")
-objetivo_raw = st.selectbox("🎯 Objetivo do vídeo", ["Gerar autoridade", "Converter em vendas", "Engajamento", "Outro"])
-objetivo = handle_outro(objetivo_raw, "objetivo")
+# Formulário
+with st.form("briefing_form"):
+    tema = st.text_input("🎯 Tema central do vídeo")
 
-tom_raw = st.selectbox("🗣️ Tom da comunicação", ["Inspirador", "Confiante", "Leve", "Direto", "Outro"])
-tom = handle_outro(tom_raw, "tom")
+    objetivo_raw = st.selectbox("🎯 Objetivo principal do vídeo", [
+        "Gerar autoridade", "Atrair novos clientes", "Educar o público",
+        "Engajar seguidores", "Posicionar a marca", "Converter leads em clientes", "Outro"
+    ])
+    objetivo = handle_outro(objetivo_raw, "objetivo")
 
-publico = st.text_input("👥 Público-alvo")
+    tom_raw = st.selectbox("🗣️ Tom da comunicação", [
+        "Confiante", "Inspirador", "Educativo", "Direto", "Provocador", "Divertido", "Emocional", "Outro"
+    ])
+    tom = handle_outro(tom_raw, "tom")
 
-formato_raw = st.selectbox("🎬 Formato do vídeo", ["Reels", "Story", "YouTube Shorts", "Institucional", "Outro"])
-formato = handle_outro(formato_raw, "formato")
+    publico = st.text_input("👥 Descreva brevemente o público-alvo")
 
-tempo_raw = st.selectbox("⏱️ Duração estimada", ["Até 30s", "1 minuto", "2-3 minutos", "Outro"])
-tempo = handle_outro(tempo_raw, "duração")
+    formato_raw = st.selectbox("🎬 Formato do vídeo", [
+        "Reels (Instagram)", "Shorts (YouTube)", "Stories", "Vídeo institucional", "Anúncio (ads)", "VSL (vídeo de vendas)", "Outro"
+    ])
+    formato = handle_outro(formato_raw, "formato")
 
-# Geração de roteiros via OpenRouter
+    duracao_raw = st.selectbox("⏱️ Duração estimada", [
+        "Até 15 segundos", "Até 30 segundos", "1 minuto", "2-3 minutos", "Outro"
+    ])
+    duracao = handle_outro(duracao_raw, "duração")
+
+    submit = st.form_submit_button("🎬 Gerar Roteiros")
+
+# Função para gerar os roteiros com prompt aprimorado
 def gerar_roteiros():
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
@@ -38,20 +52,32 @@ def gerar_roteiros():
     )
 
     prompt = f"""
-Tu é um roteirista experiente chamado VideoCraft, especialista em vídeos curtos com alta conversão para empresas e marcas pessoais.
-Teu estilo mistura storytelling, linguagem acessível e autoridade, com foco nos seguintes blocos:
-🎯 Gancho / 💥 Dor / 🧠 Autoridade / 🧩 Micro-story / 🛒 CTA.
+Você é um roteirista profissional chamado VideoCraft, especializado em criação de roteiros curtos e de alto impacto para vídeos voltados a empresas, marcas pessoais e criadores de conteúdo.
 
-Gere 3 versões diferentes de roteiros com base neste briefing:
+Todas as respostas devem ser escritas em português do Brasil, com linguagem acessível, estratégica e compatível com o público-alvo informado.
+
+O roteiro deve seguir a seguinte estrutura:
+🎯 Gancho – Uma frase forte que capture a atenção imediatamente.
+💥 Dor – Um problema real ou comum do público.
+🧠 Autoridade / Solução – Mostre domínio sobre o assunto e a proposta de valor.
+🧩 Micro-story ou analogia – Um exemplo rápido, real ou simbólico, que ilustra a transformação.
+🛒 Chamada para ação – Um CTA sutil, direto e persuasivo.
+
+Instruções específicas:
+- Crie 3 versões diferentes do roteiro, com variações no tom, construção ou abordagem.
+- Use frases curtas e de fácil assimilação.
+- Evite o uso exagerado de emojis (limite-se aos títulos dos blocos).
+- A comunicação deve ser estratégica, pensada para conversão e engajamento.
+- O texto final deve parecer escrito por um ser humano com domínio do tema.
+
+Baseie-se neste briefing:
 
 Tema: {tema}
-Objetivo: {objetivo}
-Tom: {tom}
+Objetivo do vídeo: {objetivo}
+Tom desejado: {tom}
 Público-alvo: {publico}
-Formato: {formato}
-Duração estimada: {tempo}
-
-Cada versão deve ser direta, com frases curtas e impacto emocional. Use emojis e títulos para destacar os blocos.
+Formato do vídeo: {formato}
+Duração estimada: {duracao}
 """
 
     resposta = client.chat.completions.create(
@@ -62,15 +88,15 @@ Cada versão deve ser direta, com frases curtas e impacto emocional. Use emojis 
 
     return resposta.choices[0].message.content
 
-# Botão de gerar
-if st.button("🎬 Gerar Roteiros"):
-    if all([openai_api_key, tema, objetivo, tom, publico, formato, tempo]):
-        with st.spinner("Criando roteiros com VideoCraft..."):
+# Exibir resultado
+if submit:
+    if all([openai_api_key, tema, objetivo, tom, publico, formato, duracao]):
+        with st.spinner("Gerando roteiros com VideoCraft..."):
             try:
                 resultado = gerar_roteiros()
                 st.markdown("### 🧠 Roteiros Gerados")
                 st.markdown(resultado)
             except Exception as e:
-                st.error(f"Erro ao gerar roteiros: {e}")
+                st.error(f"Erro ao gerar os roteiros: {e}")
     else:
         st.warning("Preencha todos os campos antes de gerar.")
