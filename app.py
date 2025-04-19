@@ -36,16 +36,57 @@ elif menu == "📘 Playbook":
 
 # Aba: Roteiros
 elif menu == "📋 Roteiros":
-    st.header("Criação de Roteiros com Perguntas Guiadas")
-    st.write("Responda às perguntas abaixo para gerar um roteiro com base no estilo VOID.")
-    tema = st.text_input("🎯 Qual o tema do vídeo?")
-    objetivo = st.selectbox("🎯 Qual o objetivo do vídeo?", ["Gerar autoridade", "Converter em vendas", "Engajamento", "Outro"])
-    tom = st.selectbox("🗣️ Qual o tom da comunicação?", ["Inspirador", "Confiante", "Leve", "Direto", "Outro"])
-    publico = st.text_input("👥 Quem é o público-alvo?")
-    formato = st.selectbox("🎬 Formato do vídeo", ["Reels", "Story", "YouTube Shorts", "Institucional", "Outro"])
-    tempo = st.selectbox("⏱️ Duração estimada", ["Até 30s", "1 minuto", "2-3 minutos", "Outro"])
-    if st.button("Gerar roteiro"):
-        st.success("🔧 Em breve: Roteiro gerado com base nas respostas.")
+    # Aba: Roteirista Inteligente
+st.header("📋 Roteirista Inteligente VOID")
+st.write("Responda às perguntas abaixo para gerar **3 versões diferentes** de um roteiro com base no estilo VOID.")
+
+# Formulário do briefing
+tema = st.text_input("🎯 Qual o tema do vídeo?")
+objetivo = st.selectbox("🎯 Qual o objetivo do vídeo?", ["Gerar autoridade", "Converter em vendas", "Engajamento", "Outro"])
+tom = st.selectbox("🗣️ Qual o tom da comunicação?", ["Inspirador", "Confiante", "Leve", "Direto", "Outro"])
+publico = st.text_input("👥 Quem é o público-alvo?")
+formato = st.selectbox("🎬 Formato do vídeo", ["Reels", "Story", "YouTube Shorts", "Institucional", "Outro"])
+tempo = st.selectbox("⏱️ Duração estimada", ["Até 30s", "1 minuto", "2-3 minutos", "Outro"])
+
+# Chave da API da OpenAI
+openai_api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else st.text_inputsk-proj-DBfgfPaY8_eMlF91d22-17vnEH1-CBYhBc5XKFSyZYdmj-s9HyXt955PnRGbGHfBwllClCkRStT3BlbkFJpMdHPlL5mMpyORiYEZW1voLLQN4ycWw8hOAranF56x6nKl6jU-t7xaMonzd5aSjBMVRDZGOg0A", type="password")
+
+# Função para gerar os roteiros via GPT
+def gerar_roteiros():
+    prompt_base = f"""
+Tu é um roteirista experiente chamado VideoCraft, especialista em vídeos curtos com alta conversão para empresas e marcas pessoais. 
+Teu estilo mistura storytelling, linguagem acessível e autoridade, com foco nos seguintes blocos: 
+🎯 Gancho / 💥 Dor / 🧠 Autoridade / 🧩 Micro-story / 🛒 CTA.
+
+Gere 3 versões diferentes de roteiros para vídeo, com base no seguinte briefing:
+
+Tema: {tema}
+Objetivo: {objetivo}
+Tom: {tom}
+Público-alvo: {publico}
+Formato: {formato}
+Duração estimada: {tempo}
+
+Cada versão deve ser direta, com frases curtas e impacto emocional. Mantenha a estrutura e destaque os blocos de cada parte com emojis e títulos.
+"""
+
+    openai.api_key = openai_api_key
+    resposta = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt_base}],
+        temperature=0.9
+    )
+    return resposta.choices[0].message.content
+
+# Botão para gerar os roteiros
+if st.button("🎬 Gerar Roteiros"):
+    if openai_api_key and tema and publico:
+        with st.spinner("Criando roteiros com VideoCraft..."):
+            resultado = gerar_roteiros()
+            st.markdown("### 🧠 Roteiros Gerados")
+            st.markdown(resultado)
+    else:
+        st.error("Preencha todos os campos e insira sua OpenAI API Key.")
 
 # Aba: Análise de Conteúdo
 elif menu == "📈 Análise de Conteúdo":
